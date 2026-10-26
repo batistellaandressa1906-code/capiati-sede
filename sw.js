@@ -1,5 +1,5 @@
 // Ao publicar uma versão nova do app, aumente o número abaixo para os celulares baixarem a atualização.
-const CACHE = 'capiati-sede-v7';
+const CACHE = 'capiati-sede-v8';
 const ARQUIVOS = ['./', './index.html', './config.js', './manifest.webmanifest', './icones/icone-192.png', './icones/icone-512.png', './icones/icone-maskable-512.png'];
 
 self.addEventListener('install', e => {
