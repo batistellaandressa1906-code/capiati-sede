@@ -291,7 +291,7 @@ fieldset{border:0;margin:0 0 20px;padding:0;min-width:0}
 <script>
 (function(){
 'use strict';
-const VERSAO = '1.4.3';
+const VERSAO = '1.4.4';
 const UNIDADE = 'Sede';
 const K_REG = 'capiati.sede.registros', K_CFG = 'capiati.sede.config', K_REF = 'capiati.sede.referencia';
 const DIAS_ENTRE_PARTOS = 300; // menos que isso, a mesma vaca não pode ter parido de novo
@@ -348,7 +348,12 @@ function avisar(msg, erro){
 function nota(el, tipo, texto){ el.innerHTML = texto ? '<div class="nota nota-'+tipo+'">'+texto+'</div>' : ''; }
 
 /* ---------- configuração (vem do config.js, preenchido pelo escritório) ---------- */
-const CONF = window.CAPIATI_CONFIG || {};
+// Se o config.js do GitHub vier vazio ou faltar, usa a última ligação que funcionou neste celular.
+const K_LIG = 'capiati.sede.ligacao';
+function confValida(c){ return !!c && servidorValido(String(c.servidor || '').trim()) && !!String(c.chave || '').trim() && (!c.unidade || c.unidade === UNIDADE); }
+let CONF = window.CAPIATI_CONFIG || {};
+if (confValida(CONF)) gravar(K_LIG, { unidade: CONF.unidade || UNIDADE, servidor: String(CONF.servidor).trim(), chave: String(CONF.chave).trim() });
+else { const salva = ler(K_LIG, null); if (confValida(salva)) CONF = salva; }
 cfg.url = String(CONF.servidor || '').trim();
 cfg.chave = String(CONF.chave || '').trim();
 function servidorValido(url){ return /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url); }
@@ -611,7 +616,7 @@ function abrirForm(id){
     pegarLocal();
   }
   mostrar('telaForm');
-  if (!r) setTimeout(() => $('fMae').focus(), 150);
+  if (!r) setTimeout(() => { const ativo = document.activeElement; if (!ativo || ativo === document.body || ativo.closest('.barra')) $('fMae').focus(); }, 150);
 }
 
 function pegarLocal(){

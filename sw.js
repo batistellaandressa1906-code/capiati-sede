@@ -1,9 +1,14 @@
 // Ao publicar uma versão nova do app, aumente o número abaixo para os celulares baixarem a atualização.
-const CACHE = 'capiati-sede-v8';
-const ARQUIVOS = ['./', './index.html', './config.js', './manifest.webmanifest', './icones/icone-192.png', './icones/icone-512.png', './icones/icone-maskable-512.png'];
+const CACHE = 'capiati-sede-v9';
+// O config.js não entra nesta lista: ele existe só no GitHub e, se faltar, o app continua funcionando sem sinal.
+const ARQUIVOS = ['./', './index.html', './manifest.webmanifest', './icones/icone-192.png', './icones/icone-512.png', './icones/icone-maskable-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARQUIVOS)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(ARQUIVOS).then(() => c.add('./config.js').catch(() => {})))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {
@@ -20,12 +25,17 @@ self.addEventListener('fetch', e => {
   // Envio de dados para o servidor da fazenda nunca passa pelo cache.
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  if (req.mode === 'navigate' || url.pathname.endsWith('/config.js')) {
-    // Página: tenta a rede (pega atualização), cai para o cache sem sinal.
+  const ehPagina = req.mode === 'navigate';
+  if (ehPagina || url.pathname.endsWith('/config.js')) {
+    // Página e ligação: tenta a rede para pegar atualizações; sem sinal ou com erro, usa a última cópia boa.
+    const chave = ehPagina ? './index.html' : './config.js';
     e.respondWith(
       fetch(req)
-        .then(r => { const copia = r.clone(); const chave = req.mode === 'navigate' ? './index.html' : './config.js'; caches.open(CACHE).then(c => c.put(chave, copia)); return r; })
-        .catch(() => caches.match(req.mode === 'navigate' ? './index.html' : './config.js'))
+        .then(r => {
+          if (r.ok) { const copia = r.clone(); caches.open(CACHE).then(c => c.put(chave, copia)); return r; }
+          return caches.match(chave).then(c => c || r);
+        })
+        .catch(() => caches.match(chave))
     );
     return;
   }
